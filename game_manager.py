@@ -140,3 +140,60 @@ class GameManager:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Erro ao salvar dados: {e}")
+
+class PriceLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setValidator(QDoubleValidator(0, 999999, 2, self))
+        
+    def focusInEvent(self, event):
+        current_text = self.text().replace('R$', '').strip()
+        self.setText(current_text)
+        super().focusInEvent(event)
+        
+    def focusOutEvent(self, event):
+        if self.text():
+            manager = MainWindow.get_instance().game_manager if hasattr(MainWindow, 'get_instance') else GameManager()
+            formatted = manager.format_price(self.text())
+            self.setText(formatted)
+        super().focusOutEvent(event)
+
+class EditDialog(QDialog):
+    def __init__(self, parent=None, name="", price="", status="não pago"):
+        super().__init__(parent)
+        self.setWindowTitle("Editar Jogo")
+        self.setModal(True)
+        self.setFixedSize(300, 200)
+        
+        layout = QVBoxLayout()
+        
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(QLabel("Nome:"))
+        self.name_edit = QLineEdit(name)
+        name_layout.addWidget(self.name_edit)
+        layout.addLayout(name_layout)
+        
+        price_layout = QHBoxLayout()
+        price_layout.addWidget(QLabel("Preço:"))
+        self.price_edit = PriceLineEdit()
+        self.price_edit.setText(price.replace('R$', '').strip())
+        price_layout.addWidget(self.price_edit)
+        layout.addLayout(price_layout)
+        
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(QLabel("Status:"))
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(["pago", "não pago", "reembolsado"])
+        self.status_combo.setCurrentText(status)
+        status_layout.addWidget(self.status_combo)
+        layout.addLayout(status_layout)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        
+        self.setLayout(layout)
+    
+    def get_data(self):
+        return self.name_edit.text(), self.price_edit.text(), self.status_combo.currentText()
