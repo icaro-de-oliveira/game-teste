@@ -86,3 +86,57 @@ class GameManager:
     def clear_trash(self):
         self.deleted_games.clear()
         self.save_data()
+
+    def format_price(self, price):
+        clean_price = price.replace('R$', '').replace(' ', '').strip()
+        
+        if not clean_price:
+            return "R$ 0,00"
+        
+        if not re.match(r'^[\d,.]+$', clean_price):
+            clean_price = re.sub(r'[^\d,]', '', clean_price)
+        
+        if '.' in clean_price and ',' in clean_price:
+            clean_price = clean_price.replace('.', '').replace(',', '.')
+        elif ',' in clean_price:
+            clean_price = clean_price.replace(',', '.')
+        
+        try:
+            price_float = float(clean_price)
+            formatted = f"R$ {price_float:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            return formatted
+        except ValueError:
+            return f"R$ {price}"
+    
+    def load_data(self):
+        try:
+            if os.path.exists('games.json'):
+                with open('games.json', 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    
+                    self.games = [Game.from_dict(game) for game in data.get('games', []) if not game.get('deleted', False)]
+                    self.deleted_games = [Game.from_dict(game) for game in data.get('games', []) if game.get('deleted', False)]
+                    
+                    all_games = self.games + self.deleted_games
+                    if all_games:
+                        self.next_id = max(game.id for game in all_games) + 1
+                    else:
+                        self.next_id = 1
+        except Exception as e:
+            print(f"Erro ao carregar dados: {e}")
+            self.games = []
+            self.deleted_games = []
+            self.next_id = 1
+    
+    def save_data(self):
+        try:
+            all_games = [game.to_dict() for game in self.games + self.deleted_games]
+            data = {
+                'games': all_games,
+                'next_id': self.next_id
+            }
+            
+            with open('games.json', 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Erro ao salvar dados: {e}")
