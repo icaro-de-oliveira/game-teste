@@ -363,4 +363,122 @@ class MainWindow(QMainWindow):
         dialog.exec_()
         self.update_table(self.search_edit.text())
 
+class TrashDialog(QDialog):
+    def __init__(self, game_manager, parent=None):
+        super().__init__(parent)
+        self.game_manager = game_manager
+        self.setWindowTitle("Lixeira")
+        self.setModal(True)
+        self.setFixedSize(700, 400)
         
+        layout = QVBoxLayout()
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["ID", "Nome", "Preço", "Status"])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        layout.addWidget(self.table)
+        
+        button_layout = QHBoxLayout()
+        
+        self.restore_button = QPushButton("Restaurar")
+        self.restore_button.clicked.connect(self.restore_games)
+        button_layout.addWidget(self.restore_button)
+        
+        self.delete_button = QPushButton("Excluir Permanentemente")
+        self.delete_button.clicked.connect(self.delete_permanent)
+        button_layout.addWidget(self.delete_button)
+        
+        self.clear_button = QPushButton("Limpar Tudo")
+        self.clear_button.clicked.connect(self.clear_trash)
+        button_layout.addWidget(self.clear_button)
+        
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        self.update_table()
+    
+    def update_table(self):
+        self.table.setRowCount(0)
+        for game in self.game_manager.deleted_games:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            
+            self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
+            self.table.setItem(row, 1, QTableWidgetItem(game.name))
+            self.table.setItem(row, 2, QTableWidgetItem(game.price))
+            
+            status_item = QTableWidgetItem(game.status)
+            if game.status == "pago":
+                status_item.setBackground(QColor(144, 238, 144))
+            elif game.status == "não pago":
+                status_item.setBackground(QColor(255, 182, 193))
+            elif game.status == "reembolsado":
+                status_item.setBackground(QColor(255, 215, 0))
+            
+            self.table.setItem(row, 3, status_item)
+    
+    def restore_games(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione pelo menos um jogo para restaurar!")
+            return
+        
+        rows = set()
+        for item in selected:
+            rows.add(item.row())
+        
+        ids = []
+        for row in rows:
+            id_item = self.table.item(row, 0)
+            if id_item:
+                ids.append(int(id_item.text()))
+        
+        self.game_manager.restore_games(ids)
+        self.update_table()
+    
+    def delete_permanent(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione pelo menos um jogo para excluir permanentemente!")
+            return
+        
+        rows = set()
+        for item in selected:
+            rows.add(item.row())
+        
+        ids = []
+        for row in rows:
+            id_item = self.table.item(row, 0)
+            if id_item:
+                ids.append(int(id_item.text()))
+        
+        reply = QMessageBox.question(self, "Confirmar", 
+                                   f"Deseja realmente excluir permanentemente {len(rows)} jogo(s)?",
+                                   QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.game_manager.delete_games(ids, permanent=True)
+            self.update_table()
+    
+    def clear_trash(self):
+        if not self.game_manager.deleted_games:
+            QMessageBox.information(self, "Info", "A lixeira já está vazia!")
+            return
+        
+        reply = QMessageBox.question(self, "Confirmar", 
+                                   "Deseja realmente limpar toda a lixeira?",
+                                   QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.game_manager.clear_trash()
+            self.update_table()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
