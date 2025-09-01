@@ -197,3 +197,84 @@ class EditDialog(QDialog):
     
     def get_data(self):
         return self.name_edit.text(), self.price_edit.text(), self.status_combo.currentText()
+    
+class MainWindow(QMainWindow):
+    _instance = None
+    
+    def __init__(self):
+        super().__init__()
+        MainWindow._instance = self
+        self.game_manager = GameManager()
+        self.init_ui()
+        self.update_table()
+    
+    @classmethod
+    def get_instance(cls):
+        return cls._instance
+    
+    def init_ui(self):
+        self.setWindowTitle("Gerenciador de Jogos")
+        self.setGeometry(100, 100, 900, 600)
+        
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Pesquisar:"))
+        self.search_edit = QLineEdit()
+        self.search_edit.textChanged.connect(self.update_table)
+        search_layout.addWidget(self.search_edit)
+        layout.addLayout(search_layout)
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["ID", "Nome", "Preço", "Status"])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.doubleClicked.connect(self.edit_game)
+        layout.addWidget(self.table)
+        
+        button_layout = QHBoxLayout()
+        
+        self.add_button = QPushButton("Adicionar Jogo")
+        self.add_button.clicked.connect(self.add_game)
+        button_layout.addWidget(self.add_button)
+        
+        self.edit_button = QPushButton("Editar Jogo")
+        self.edit_button.clicked.connect(self.edit_game)
+        button_layout.addWidget(self.edit_button)
+        
+        self.delete_button = QPushButton("Excluir Jogo(s)")
+        self.delete_button.clicked.connect(self.delete_games)
+        button_layout.addWidget(self.delete_button)
+        
+        self.trash_button = QPushButton("Lixeira")
+        self.trash_button.clicked.connect(self.show_trash)
+        button_layout.addWidget(self.trash_button)
+        
+        layout.addLayout(button_layout)
+        
+        self.create_menu()
+    
+    def create_menu(self):
+        menu_bar = self.menuBar()
+        
+        file_menu = menu_bar.addMenu("Arquivo")
+        
+        add_action = QAction("Adicionar Jogo", self)
+        add_action.triggered.connect(self.add_game)
+        file_menu.addAction(add_action)
+        
+        trash_action = QAction("Lixeira", self)
+        trash_action.triggered.connect(self.show_trash)
+        file_menu.addAction(trash_action)
+        
+        exit_action = QAction("Sair", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+    
