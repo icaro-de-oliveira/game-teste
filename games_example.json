@@ -1,0 +1,26 @@
+{
+  "games": [
+    {
+      "id": 3,
+      "name": "Until Dawn",
+      "price": "R$ 157,66",
+      "status": "pago",
+      "deleted": false
+    },
+    {
+      "id": 2,
+      "name": "Gears of War: Reloaded",
+      "price": "R$ 150,58",
+      "status": "reembolsado",
+      "deleted": false
+    },
+    {
+      "id": 1,
+      "name": "Metal Gear Solid Delta: Snake Eater",
+      "price": "R$ 179,45",
+      "status": "não pago",
+      "deleted": false
+    }
+  ],
+  "next_id": 4
+}
