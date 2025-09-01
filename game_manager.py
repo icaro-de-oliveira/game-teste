@@ -278,3 +278,89 @@ class MainWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
     
+    def update_table(self, search_text=""):
+        self.table.setRowCount(0)
+        for game in self.game_manager.games:
+            if (search_text.lower() in game.name.lower() or 
+                search_text in str(game.id) or 
+                search_text in game.price):
+                row = self.table.rowCount()
+                self.table.insertRow(row)
+                
+                self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
+                self.table.setItem(row, 1, QTableWidgetItem(game.name))
+                self.table.setItem(row, 2, QTableWidgetItem(game.price))
+                
+                status_item = QTableWidgetItem(game.status)
+                if game.status == "pago":
+                    status_item.setBackground(QColor(144, 238, 144))
+                elif game.status == "não pago":
+                    status_item.setBackground(QColor(255, 182, 193))
+                elif game.status == "reembolsado":
+                    status_item.setBackground(QColor(255, 215, 0))
+                
+                self.table.setItem(row, 3, status_item)
+    
+    def add_game(self):
+        dialog = EditDialog(self)
+        if dialog.exec_():
+            name, price, status = dialog.get_data()
+            if name and price:
+                self.game_manager.add_game(name, price, status)
+                self.update_table(self.search_edit.text())
+            else:
+                QMessageBox.warning(self, "Aviso", "Nome e preço são obrigatórios!")
+    
+    def edit_game(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione um jogo para editar!")
+            return
+        
+        row = self.table.row(selected[0])
+        id = int(self.table.item(row, 0).text())
+        name = self.table.item(row, 1).text()
+        price = self.table.item(row, 2).text().replace('R$ ', '')
+        status = self.table.item(row, 3).text()
+        
+        dialog = EditDialog(self, name, price, status)
+        if dialog.exec_():
+            new_name, new_price, new_status = dialog.get_data()
+            if new_name and new_price:
+                reply = QMessageBox.question(self, "Confirmar", "Deseja realmente salvar as alterações?",
+                                           QMessageBox.Yes | QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    self.game_manager.update_game(id, new_name, new_price, new_status)
+                    self.update_table(self.search_edit.text())
+            else:
+                QMessageBox.warning(self, "Aviso", "Nome e preço são obrigatórios!")
+    
+    def delete_games(self):
+        selected = self.table.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "Aviso", "Selecione pelo menos um jogo para excluir!")
+            return
+        
+        rows = set()
+        for item in selected:
+            rows.add(item.row())
+        
+        ids = []
+        for row in rows:
+            id_item = self.table.item(row, 0)
+            if id_item:
+                ids.append(int(id_item.text()))
+        
+        reply = QMessageBox.question(self, "Confirmar", 
+                                   f"Deseja realmente excluir {len(rows)} jogo(s)?",
+                                   QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.game_manager.delete_games(ids)
+            self.update_table(self.search_edit.text())
+    
+    def show_trash(self):
+        dialog = TrashDialog(self.game_manager, self)
+        dialog.exec_()
+        self.update_table(self.search_edit.text())
+
+        
