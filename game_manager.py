@@ -42,3 +42,47 @@ class GameManager:
         self.deleted_games = []
         self.next_id = 1
         self.load_data()
+
+    def add_game(self, name, price, status):
+        formatted_price = self.format_price(price)
+        
+        self.games.insert(0, Game(self.next_id, name, formatted_price, status))
+        self.next_id += 1
+        self.save_data()
+    
+    def update_game(self, id, name, price, status):
+        for i, game in enumerate(self.games):
+            if game.id == id:
+                formatted_price = self.format_price(price)
+                
+                game.name = name
+                game.price = formatted_price
+                game.status = status
+                self.games.insert(0, self.games.pop(i))
+                break
+        self.save_data()
+    
+    def delete_games(self, ids, permanent=False):
+        if permanent:
+            self.deleted_games = [game for game in self.deleted_games if game.id not in ids]
+        else:
+            for id in ids:
+                for i, game in enumerate(self.games):
+                    if game.id == id:
+                        game.deleted = True
+                        self.deleted_games.append(self.games.pop(i))
+                        break
+        self.save_data()
+    
+    def restore_games(self, ids):
+        for id in ids:
+            for i, game in enumerate(self.deleted_games):
+                if game.id == id:
+                    game.deleted = False
+                    self.games.insert(0, self.deleted_games.pop(i))
+                    break
+        self.save_data()
+    
+    def clear_trash(self):
+        self.deleted_games.clear()
+        self.save_data()
