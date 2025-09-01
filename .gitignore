@@ -1,6 +1,5 @@
-# Arquivos do PyInstaller
+# Arquivos do PyInstaller (processo de build)
 build/
-dist/
 *.spec
 
 # Arquivos do Python
@@ -9,7 +8,7 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Arquivos de dados (isto é apenas para teste e deve ser excluído antes de usar)
+# Arquivos de dados de DESENVOLVIMENTO (não versionar dados de teste)
 games.json
 
 # Arquivos do sistema
