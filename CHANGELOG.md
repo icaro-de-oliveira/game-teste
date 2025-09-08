@@ -25,7 +25,7 @@
 - ✅ **Validação de preços**: Aceita múltiplos formatos (R$ 100,00, 100.00, 100,00)
 - ✅ **Formatação automática**: Preços são formatados automaticamente para padrão brasileiro
 - ✅ **Confirmações**: Diálogos de confirmação para ações importantes
-
+ 
 ---
 
 ## [1.0.0] - 31/08/2025
