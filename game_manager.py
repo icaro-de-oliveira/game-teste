@@ -233,8 +233,8 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["ID", "Nome", "Preço", "Status"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(2, 120)  # Preço
-        self.table.setColumnWidth(3, 150)  # Status
+        self.table.setColumnWidth(2, 120)
+        self.table.setColumnWidth(3, 150)
 
 
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -292,7 +292,9 @@ class MainWindow(QMainWindow):
                 
                 self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
                 self.table.setItem(row, 1, QTableWidgetItem(game.name))
-                self.table.setItem(row, 2, QTableWidgetItem(game.price))
+                price_item = QTableWidgetItem(game.price)
+                price_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 2, price_item)
                 
                 status_item = QTableWidgetItem(game.status)
                 if game.status == "pago":
@@ -302,6 +304,7 @@ class MainWindow(QMainWindow):
                 elif game.status == "reembolsado":
                     status_item.setBackground(QColor(255, 215, 0))
                 
+                status_item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row, 3, status_item)
     
     def add_game(self):
@@ -414,7 +417,9 @@ class TrashDialog(QDialog):
             
             self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
             self.table.setItem(row, 1, QTableWidgetItem(game.name))
-            self.table.setItem(row, 2, QTableWidgetItem(game.price))
+            price_item = QTableWidgetItem(game.price)
+            price_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(row, 2, price_item)
             
             status_item = QTableWidgetItem(game.status)
             if game.status == "pago":
@@ -424,6 +429,7 @@ class TrashDialog(QDialog):
             elif game.status == "reembolsado":
                 status_item.setBackground(QColor(255, 215, 0))
             
+            status_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 3, status_item)
     
     def restore_games(self):
