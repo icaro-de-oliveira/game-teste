@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(search_layout)
         
         self.table = QTableWidget()
+        self.table.verticalHeader().setVisible(False)
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(["ID", "Nome", "Preço", "Status"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
