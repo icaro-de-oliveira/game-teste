@@ -76,3 +76,8 @@ Este projeto foi desenvolvido com assistência de Inteligência Artificial para 
 ### Instalação das Dependências
 ```bash
 pip install PyQt5
+
+
+## 📦 Última Atualização
+Versão 1.2.0 — 08/09/2025  
+Veja o [Histórico de Atualizações](CHANGELOG.md) completo.
