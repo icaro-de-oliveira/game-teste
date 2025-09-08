@@ -236,7 +236,6 @@ class MainWindow(QMainWindow):
         self.table.setColumnWidth(2, 120)
         self.table.setColumnWidth(3, 150)
 
-
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.doubleClicked.connect(self.edit_game)
@@ -290,8 +289,10 @@ class MainWindow(QMainWindow):
                 row = self.table.rowCount()
                 self.table.insertRow(row)
                 
-                self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
-                self.table.setItem(row, 1, QTableWidgetItem(game.name))
+                id_item = QTableWidgetItem(str(game.id))
+                id_item.setTextAlignment(Qt.AlignCenter)
+                self.table.setItem(row, 0, id_item)                
+                self.table.setItem(row, 1, QTableWidgetItem(game.name))                
                 price_item = QTableWidgetItem(game.price)
                 price_item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row, 2, price_item)
@@ -415,8 +416,10 @@ class TrashDialog(QDialog):
             row = self.table.rowCount()
             self.table.insertRow(row)
             
-            self.table.setItem(row, 0, QTableWidgetItem(str(game.id)))
-            self.table.setItem(row, 1, QTableWidgetItem(game.name))
+            id_item = QTableWidgetItem(str(game.id))
+            id_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(row, 0, id_item)            
+            self.table.setItem(row, 1, QTableWidgetItem(game.name))            
             price_item = QTableWidgetItem(game.price)
             price_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 2, price_item)
