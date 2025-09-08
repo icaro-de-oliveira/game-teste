@@ -233,8 +233,10 @@ class MainWindow(QMainWindow):
         self.table.setHorizontalHeaderLabels(["ID", "Nome", "Preço", "Status"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table.setColumnWidth(2, 120)  # Preço
+        self.table.setColumnWidth(3, 150)  # Status
+
+
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.doubleClicked.connect(self.edit_game)
