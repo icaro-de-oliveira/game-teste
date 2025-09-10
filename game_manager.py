@@ -215,8 +215,59 @@ class AddFundsDialog(QDialog):
         self.setLayout(layout)
 
     def get_amount(self):
-        return self.amount_edit.text()
+        text = self.amount_edit.text().strip()
+        if not text:
+            return ''
+        # Corrige vírgula
+        if text.count(',') > 1 or text.count('.') > 1:
+            QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
+            return ''
+        text = text.replace(',', '.')
+        try:
+            float(text)
+            return text
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
+            return ''
 
+
+
+class RemoveFundsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Remover Fundos")
+        self.setModal(True)
+        self.setFixedSize(250, 120)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Valor a remover:"))
+
+        self.amount_edit = QLineEdit()
+        self.amount_edit.setValidator(QDoubleValidator(0, 999999, 2, self))
+        layout.addWidget(self.amount_edit)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self.setLayout(layout)
+
+    def get_amount(self):
+        text = self.amount_edit.text().strip()
+        if not text:
+            return ''
+        # Corrige vírgula
+        if text.count(',') > 1 or text.count('.') > 1:
+            QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
+            return ''
+        text = text.replace(',', '.')
+        try:
+            float(text)
+            return text
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
+            return ''
 
 class EditDialog(QDialog):
     def __init__(self, parent=None, name="", price="", status="não pago"):
@@ -245,6 +296,8 @@ class EditDialog(QDialog):
         self.status_combo = QComboBox()
         self.status_combo.addItems(["pago", "não pago", "reembolsado"])
         self.status_combo.setCurrentText(status)
+        # Se status for alterado, bloquear edição do preço
+        self.status_combo.currentTextChanged.connect(lambda: self.price_edit.setDisabled(True))
 
         funds_label = QLabel(f"Saldo disponível: R$ {MainWindow.get_instance().game_manager.funds:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
         layout.addWidget(funds_label)
@@ -340,8 +393,11 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(self.funds_label)
 
         self.funds_button = QPushButton("Adicionar Fundos")
+        self.remove_funds_button = QPushButton("Remover Fundos")
+        self.remove_funds_button.clicked.connect(self.remove_funds)
         self.funds_button.clicked.connect(self.add_funds)
         bottom_layout.addWidget(self.funds_button)
+        bottom_layout.addWidget(self.remove_funds_button)
 
         layout.addLayout(bottom_layout)
         
@@ -397,10 +453,14 @@ class MainWindow(QMainWindow):
         if dialog.exec_():
             name, price, status = dialog.get_data()
             if name and price:
-                self.game_manager.add_game(name, price, status)
-                self.update_table(self.search_edit.text())
-            else:
-                QMessageBox.warning(self, "Aviso", "Nome e preço são obrigatórios!")
+                if status == 'pago' and not self.game_manager.spend_funds(price):
+                    QMessageBox.warning(self, 'Aviso', 'Fundos insuficientes!')
+                    return
+            self.game_manager.add_game(name, price, status)
+            self.update_funds_label()
+            self.update_table(self.search_edit.text())
+        else:
+            QMessageBox.warning(self, "Aviso", "Nome e preço são obrigatórios!")
     
     def edit_game(self):
         selected = self.table.selectedItems()
@@ -470,7 +530,27 @@ class MainWindow(QMainWindow):
                 self.game_manager.add_funds(amount)
                 self.update_funds_label()
 
-    def show_trash(self):
+    
+    def remove_funds(self):
+        dialog = RemoveFundsDialog(self)
+        if dialog.exec_():
+            amount = dialog.get_amount()
+            if amount:
+                try:
+                    value = float(str(amount).replace(',', '.'))
+                    if value <= 0:
+                        QMessageBox.warning(self, "Aviso", "Digite um valor válido!")
+                        return
+                    if value > self.game_manager.funds:
+                        QMessageBox.warning(self, "Aviso", "Você não possui fundos suficientes!")
+                        return
+                    self.game_manager.funds -= value
+                    self.game_manager.save_data()
+                    self.update_funds_label()
+                except ValueError:
+                    QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
+
+def show_trash(self):
         dialog = TrashDialog(self.game_manager, self)
         dialog.exec_()
         self.update_table(self.search_edit.text())
@@ -518,8 +598,11 @@ class TrashDialog(QDialog):
         bottom_layout.addWidget(self.funds_label)
 
         self.funds_button = QPushButton("Adicionar Fundos")
+        self.remove_funds_button = QPushButton("Remover Fundos")
+        self.remove_funds_button.clicked.connect(self.remove_funds)
         self.funds_button.clicked.connect(self.add_funds)
         bottom_layout.addWidget(self.funds_button)
+        bottom_layout.addWidget(self.remove_funds_button)
 
         layout.addLayout(bottom_layout)
         
