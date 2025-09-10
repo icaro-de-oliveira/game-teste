@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QComboBox, QLabel, QMessageBox, QDialog, QDialogButtonBox,
                              QHeaderView, QAction, QMenu, QToolBar, QStyle, QAbstractItemView)
 from PyQt5.QtCore import Qt, QSettings
-from PyQt5.QtGui import QColor, QFont, QIcon, QDoubleValidator
+from PyQt5.QtGui import QColor, QFont, QIcon, QDoubleValidator, QIntValidator
 
 class Game:
     def __init__(self, id, name, price, status, deleted=False):
@@ -41,6 +41,7 @@ class GameManager:
         self.games = []
         self.deleted_games = []
         self.next_id = 1
+        self.funds = 0.0
         self.load_data()
 
     def add_game(self, name, price, status):
@@ -111,6 +112,7 @@ class GameManager:
     def load_data(self):
         try:
             if os.path.exists('games.json'):
+                self.funds = 0.0
                 with open('games.json', 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     
@@ -120,26 +122,58 @@ class GameManager:
                     all_games = self.games + self.deleted_games
                     if all_games:
                         self.next_id = max(game.id for game in all_games) + 1
+                        self.funds = data.get('funds', 0.0)
                     else:
                         self.next_id = 1
+                        self.funds = data.get('funds', 0.0)
         except Exception as e:
             print(f"Erro ao carregar dados: {e}")
             self.games = []
             self.deleted_games = []
             self.next_id = 1
+            self.funds = data.get('funds', 0.0)
     
     def save_data(self):
         try:
             all_games = [game.to_dict() for game in self.games + self.deleted_games]
             data = {
                 'games': all_games,
-                'next_id': self.next_id
+                'next_id': self.next_id,
+                'funds': self.funds
             }
             
             with open('games.json', 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Erro ao salvar dados: {e}")
+
+
+    def add_funds(self, amount):
+        try:
+            self.funds += float(amount)
+            self.save_data()
+        except ValueError:
+            pass
+
+    def spend_funds(self, amount):
+        try:
+            value = float(str(amount).replace('R$', '').replace('.', '').replace(',', '.'))
+            if self.funds >= value:
+                self.funds -= value
+                self.save_data()
+                return True
+            return False
+        except Exception:
+            return False
+
+    def refund_funds(self, amount):
+        try:
+            value = float(str(amount).replace('R$', '').replace('.', '').replace(',', '.'))
+            self.funds += value
+            self.save_data()
+        except Exception:
+            pass
+
 
 class PriceLineEdit(QLineEdit):
     def __init__(self, parent=None):
@@ -157,6 +191,32 @@ class PriceLineEdit(QLineEdit):
             formatted = manager.format_price(self.text())
             self.setText(formatted)
         super().focusOutEvent(event)
+
+
+class AddFundsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Adicionar Fundos")
+        self.setModal(True)
+        self.setFixedSize(250, 120)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Valor a adicionar:"))
+
+        self.amount_edit = QLineEdit()
+        self.amount_edit.setValidator(QDoubleValidator(0, 999999, 2, self))
+        layout.addWidget(self.amount_edit)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self.setLayout(layout)
+
+    def get_amount(self):
+        return self.amount_edit.text()
+
 
 class EditDialog(QDialog):
     def __init__(self, parent=None, name="", price="", status="não pago"):
@@ -185,6 +245,19 @@ class EditDialog(QDialog):
         self.status_combo = QComboBox()
         self.status_combo.addItems(["pago", "não pago", "reembolsado"])
         self.status_combo.setCurrentText(status)
+
+        funds_label = QLabel(f"Saldo disponível: R$ {MainWindow.get_instance().game_manager.funds:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+        layout.addWidget(funds_label)
+
+        try:
+            price_val = float(price.replace(',', '.'))
+        except:
+            price_val = 0.0
+        if MainWindow.get_instance().game_manager.funds < price_val:
+            idx = self.status_combo.findText("pago")
+            if idx != -1:
+                self.status_combo.model().item(idx).setEnabled(False)
+
         status_layout.addWidget(self.status_combo)
         layout.addLayout(status_layout)
         
@@ -260,6 +333,17 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(self.trash_button)
         
         layout.addLayout(button_layout)
+
+        bottom_layout = QHBoxLayout()
+        self.funds_label = QLabel()
+        self.update_funds_label()
+        bottom_layout.addWidget(self.funds_label)
+
+        self.funds_button = QPushButton("Adicionar Fundos")
+        self.funds_button.clicked.connect(self.add_funds)
+        bottom_layout.addWidget(self.funds_button)
+
+        layout.addLayout(bottom_layout)
         
         self.create_menu()
     
@@ -337,7 +421,16 @@ class MainWindow(QMainWindow):
                 reply = QMessageBox.question(self, "Confirmar", "Deseja realmente salvar as alterações?",
                                            QMessageBox.Yes | QMessageBox.No)
                 if reply == QMessageBox.Yes:
+                    old_status = status
+                    if old_status != new_status:
+                        if new_status == "pago" and old_status != "pago":
+                            if not self.game_manager.spend_funds(new_price):
+                                QMessageBox.warning(self, "Aviso", "Fundos insuficientes!")
+                                return
+                        elif new_status == "reembolsado" and old_status == "pago":
+                            self.game_manager.refund_funds(new_price)
                     self.game_manager.update_game(id, new_name, new_price, new_status)
+                    self.update_funds_label()
                     self.update_table(self.search_edit.text())
             else:
                 QMessageBox.warning(self, "Aviso", "Nome e preço são obrigatórios!")
@@ -365,6 +458,18 @@ class MainWindow(QMainWindow):
             self.game_manager.delete_games(ids)
             self.update_table(self.search_edit.text())
     
+    
+    def update_funds_label(self):
+        self.funds_label.setText(f"Saldo: R$ {self.game_manager.funds:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+
+    def add_funds(self):
+        dialog = AddFundsDialog(self)
+        if dialog.exec_():
+            amount = dialog.get_amount()
+            if amount:
+                self.game_manager.add_funds(amount)
+                self.update_funds_label()
+
     def show_trash(self):
         dialog = TrashDialog(self.game_manager, self)
         dialog.exec_()
@@ -406,6 +511,17 @@ class TrashDialog(QDialog):
         button_layout.addWidget(self.clear_button)
         
         layout.addLayout(button_layout)
+
+        bottom_layout = QHBoxLayout()
+        self.funds_label = QLabel()
+        self.update_funds_label()
+        bottom_layout.addWidget(self.funds_label)
+
+        self.funds_button = QPushButton("Adicionar Fundos")
+        self.funds_button.clicked.connect(self.add_funds)
+        bottom_layout.addWidget(self.funds_button)
+
+        layout.addLayout(bottom_layout)
         
         self.setLayout(layout)
         self.update_table()
