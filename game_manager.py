@@ -550,7 +550,7 @@ class MainWindow(QMainWindow):
                 except ValueError:
                     QMessageBox.warning(self, "Erro", "Digite um valor numérico válido!")
 
-def show_trash(self):
+    def show_trash(self):
         dialog = TrashDialog(self.game_manager, self)
         dialog.exec_()
         self.update_table(self.search_edit.text())
