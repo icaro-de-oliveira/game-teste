@@ -270,7 +270,7 @@ class RemoveFundsDialog(QDialog):
             return ''
 
 class EditDialog(QDialog):
-    def __init__(self, parent=None, name="", price="", status="não pago"):
+    def __init__(self, parent=None, name="", price="", status="não pago", editing=False):
         super().__init__(parent)
         self.setWindowTitle("Editar Jogo")
         self.setModal(True)
@@ -296,7 +296,6 @@ class EditDialog(QDialog):
         self.status_combo = QComboBox()
         self.status_combo.addItems(["pago", "não pago", "reembolsado"])
         self.status_combo.setCurrentText(status)
-        # Se status for alterado, bloquear edição do preço
         self.status_combo.currentTextChanged.connect(lambda: self.price_edit.setDisabled(True))
 
         funds_label = QLabel(f"Saldo disponível: R$ {MainWindow.get_instance().game_manager.funds:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
@@ -487,7 +486,7 @@ class MainWindow(QMainWindow):
                             if not self.game_manager.spend_funds(new_price):
                                 QMessageBox.warning(self, "Aviso", "Fundos insuficientes!")
                                 return
-                        elif new_status == "reembolsado" and old_status == "pago":
+                        elif old_status == "pago" and new_status in ["não pago", "reembolsado"]:
                             self.game_manager.refund_funds(new_price)
                     self.game_manager.update_game(id, new_name, new_price, new_status)
                     self.update_funds_label()
